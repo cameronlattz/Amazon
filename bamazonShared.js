@@ -1,5 +1,12 @@
 const shared = function() {
-    const mysql = require("mysql");
+    const _mysql = require("mysql");
+    const _connection = _mysql.createConnection({
+        host: "localhost",
+        port: 3306,
+        user: "root",
+        password: "root",
+        database: "bamazon"
+    });
     const _currencyFormatter = new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
@@ -28,15 +35,54 @@ const shared = function() {
     }
 
     return {
+        closeConnection: function() {
+            _connection.end();
+        },
+        displayDepartments: function(departments) {
+            const formattedDepartments = JSON.parse(JSON.stringify(departments));
+            formattedDepartments.forEach((department) => {
+                department.over_head_costs = _currencyFormatter.format(department.over_head_costs);
+                department.product_sales = _currencyFormatter.format(department.product_sales);
+                department.total_profit = _currencyFormatter.format(department.total_profit);
+            });
+            const departmentIdLength = _findMaxLength(formattedDepartments, "department_id");
+            const departmentNameLength = _findMaxLength(formattedDepartments, "department_name");
+            const overHeadCostsLength = _findMaxLength(formattedDepartments, "over_head_costs");
+            const productSalesLength = _findMaxLength(formattedDepartments, "product_sales");
+            const totalProfitLength = _findMaxLength(formattedDepartments, "total_profit");
+            console.log("");
+            const departmentIdHeader = _pad("department_id", departmentIdLength);
+            const departmentNameHeader = _pad("department_name", departmentNameLength);
+            const overHeadCostsHeader = _pad("over_head_costs", overHeadCostsLength);
+            const productSalesHeader = _pad("product_sales", productSalesLength);
+            const totalProfitHeader = _pad("total_profit", totalProfitLength);
+            console.log(`| ${departmentIdHeader} | ${departmentNameHeader} | ${overHeadCostsHeader} | ${productSalesHeader} | ${totalProfitHeader} |`);
+            const departmentIdDivider = _pad("", departmentIdLength, "-");
+            const departmentNameDivider = _pad("", departmentNameLength, "-");
+            const overHeadCostsDivider = _pad("", overHeadCostsLength, "-");
+            const productSalesDivider = _pad("", productSalesLength, "-");
+            const totalProfitDivider = _pad("", totalProfitLength, "-");
+            console.log(`| ${departmentIdDivider} | ${departmentNameDivider} | ${overHeadCostsDivider} | ${productSalesDivider} | ${totalProfitDivider} |`);
+            formattedDepartments.forEach((department) => {
+                const department_id = _pad(department.department_id, departmentIdLength);
+                const department_name = _pad(department.department_name, departmentNameLength);
+                const over_head_costs = _pad(department.over_head_costs, overHeadCostsLength);
+                const product_sales = _pad(department.product_sales, productSalesLength);
+                const total_profit = _pad(department.total_profit, totalProfitLength);
+                console.log(`| ${department_id } | ${department_name} | ${over_head_costs} | ${product_sales} | ${total_profit} |`);
+            });
+            console.log("");
+        },
         displayProducts: function(products) {
-            products.forEach((product) => {
+            const formattedProducts = JSON.parse(JSON.stringify(products));
+            formattedProducts.forEach((product) => {
                 product.price = _currencyFormatter.format(product.price);
             });
-            const itemIdLength = _findMaxLength(products, "item_id");
-            const productNameLength = _findMaxLength(products, "product_name");
-            const departmentNameLength = _findMaxLength(products, "department_name");
-            const priceLength = _findMaxLength(products, "price");
-            const quantityLength = _findMaxLength(products, "stock_quantity");
+            const itemIdLength = _findMaxLength(formattedProducts, "item_id");
+            const productNameLength = _findMaxLength(formattedProducts, "product_name");
+            const departmentNameLength = _findMaxLength(formattedProducts, "department_name");
+            const priceLength = _findMaxLength(formattedProducts, "price");
+            const quantityLength = _findMaxLength(formattedProducts, "stock_quantity");
             console.log("");
             const itemIdHeader = _pad("item_id", itemIdLength);
             const productNameHeader = _pad("product_name", productNameLength);
@@ -50,7 +96,7 @@ const shared = function() {
             const priceDivider = _pad("", priceLength, "-");
             const quantityDivider = _pad("", quantityLength, "-");
             console.log(`| ${itemIdDivider} | ${productNameDivider} | ${departmentNameDivider} | ${priceDivider} | ${quantityDivider} |`);
-            products.forEach((product) => {
+            formattedProducts.forEach((product) => {
                 const item_id = _pad(product.item_id, itemIdLength);
                 const product_name = _pad(product.product_name, productNameLength);
                 const department_name = _pad(product.department_name, departmentNameLength);
@@ -61,29 +107,27 @@ const shared = function() {
             console.log("");
         },
         doQuery: function(query, func) {
-            const connection = mysql.createConnection({
-                host: "localhost",
-                port: 3306,
-                user: "root",
-                password: "root",
-                database: "bamazon"
-            });
-            connection.connect(function(err) {
-                if (err) throw err;
-                connection.query(query, function(err, res) {
+            function queryFunction() {
+                _connection.query(query, function(err, res) {
                     if (err) throw err;
                     func(res);
-                    connection.end();
                 });
-            });
+            }
+            if (_connection.status === "disconnected") {
+                _connection.connect(function(err) {
+                    if (err) throw err;
+                    queryFunction();
+                });
+            } else {
+                queryFunction();
+            }
         },
-        getProducts: function(func) {
-            this.doQuery("SELECT * FROM products", function(response) {
-                const items = [];
-                response.forEach((product) => {
-                    items.push(product)
-                });
-                func(items);
+        formatCurrency: function(value) {
+            return _currencyFormatter.format(value);
+        },
+        get: function(tableName, func) {
+            this.doQuery("SELECT * FROM " + tableName, function(response) {
+                func(response);
             });
         }
     }

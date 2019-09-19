@@ -7,7 +7,7 @@ function init() {
 }
 
 function inquireProductId() {
-    shared.getProducts(function(items) {
+    shared.get("products", function(items) {
         shared.displayProducts(items);
         inquirer.prompt([
             {
@@ -21,6 +21,7 @@ function inquireProductId() {
                 inquireQuantity(item);
             } else {
                 console.log("Sorry, we don't have any products with that ID.");
+                shared.closeConnection();
             }
         });
     });
@@ -33,18 +34,22 @@ function inquireQuantity(item) {
             message: "How many would you like to buy?"
         }
     ]).then(function(answer) {
-        const quantity = Number(answer.quantity);
-        if (item.stock_quantity >= quantity) {
-            console.log("Buying " + quantity + " of " + item.product_name + ".");
-            const stock_quantity = item.stock_quantity - quantity;
-            shared.doQuery(`UPDATE products SET stock_quantity = ${stock_quantity} WHERE item_id = ${item.item_id}`, 
-                function() {
-                    const price = quantity * item.price;
-                    console.log("That'll be $" + price + ". Thank you!");
-                }
-            );
+        const answerQuantity = Number(answer.quantity);
+        const stockQuantity = Number(item.stock_quantity);
+        if (stockQuantity >= answerQuantity) {
+            const newQuantity = stockQuantity - answerQuantity;
+            const price = answerQuantity * parseFloat(item.price);
+            const newSales = Number(item.product_sales) + price;
+            const query = `UPDATE products 
+                SET stock_quantity = ${newQuantity}, product_sales = ${newSales}
+                WHERE item_id = ${item.item_id}`;
+            shared.doQuery(query, function() {
+                console.log("That'll be " + shared.formatCurrency(price) + ". Thank you!");
+                shared.closeConnection();
+            });
         } else {
             console.log("Sorry, we only have " + item.stock_quantity + " of those.");
+            shared.closeConnection();
         }
     });
 }
