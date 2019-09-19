@@ -1,6 +1,10 @@
 # Amazon
 LIRI is an app that will search different APIs for various types of media/events. You can search for songs, movies, or concerts.
 
+### TODO:
+* write readme
+* create video
+
 ### EXAMPLES:
 ```
     spotify-this-song You Dont Have a Clue
