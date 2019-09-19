@@ -1,1 +1,1 @@
-ALTER TABLE products ADD COLUMN product_sales DOUBLE(13,2);
+ALTER TABLE products ADD COLUMN product_sales DOUBLE(13,2) DEFAULT 0;
