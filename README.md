@@ -14,6 +14,8 @@ There are four main files in the app.
 1. *bamazonSupervisor.js* is the supervisor endpoint. It allows the user to:
     * View product sales (and other department) by department
     * Create new departments
+1. *bamazonShared.js* is a script that all three of the above files use. It contains methods for handling the MySQL 
+connections and queries, displaying data in more human-friendly form, and validating user input.
 
 ### HOW TO RUN:
 Run server.js in node with the following structure:
